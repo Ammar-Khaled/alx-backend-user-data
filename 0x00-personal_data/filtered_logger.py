@@ -36,9 +36,9 @@ def get_logger() -> logging.Logger:
 
 def get_db() -> MySQLConnection:
     """Connect to MySQL db."""
-    db_username = getenv('PERSONAL_DATA_DB_USERNAME')
-    db_password = getenv('PERSONAL_DATA_DB_PASSWORD')
-    db_host = getenv('PERSONAL_DATA_DB_HOST')
+    db_username = getenv('PERSONAL_DATA_DB_USERNAME') or 'root'
+    db_password = getenv('PERSONAL_DATA_DB_PASSWORD') or ''
+    db_host = getenv('PERSONAL_DATA_DB_HOST') or 'localhost'
     db_name = getenv('PERSONAL_DATA_DB_NAME')
 
     connection = connect(user=db_username, password=db_password,
