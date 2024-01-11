@@ -1,86 +1,97 @@
 #!/usr/bin/env python3
-"""Filtered logger."""
+""" Protecting PII """
+
 from typing import List
-from re import sub
 import logging
-from mysql.connector.connection import MySQLConnection
+import re
+from mysql.connector import connection
 from os import environ
 
-PII_FIELDS = ('name', 'email', 'phone', 'ssn', 'password')
+PII_FIELDS = ('name', 'email', 'password', 'ssn', 'phone')
 
 
-def filter_datum(fields: List[str], redaction: str, message: str,
-                 separator: str) -> str:
-    """Return the log message obfuscated."""
+def filter_datum(fields: List[str], redaction: str,
+                 message: str, separator: str) -> str:
+    """ returns the log message obfuscated """
     temp = message
     for field in fields:
-        temp = sub(field + "=.*?" + separator,
-                   field + "=" + redaction + separator, temp)
+        temp = re.sub(field + "=.*?" + separator,
+                      field + "=" + redaction + separator, temp)
     return temp
 
 
 def get_logger() -> logging.Logger:
-    """Create a Logger."""
-    formatter = RedactingFormatter(PII_FIELDS)
+    """ Returns logger obj  """
+    logger = logging.getLogger('user_data')
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-
-    logger = logging.getLogger("user_data")
-    logger.propagate = False
-    logger.setLevel(logging.INFO)
+    stream_handler.setFormatter(RedactingFormatter(PII_FIELDS))
     logger.addHandler(stream_handler)
-
     return logger
 
 
-def get_db() -> MySQLConnection:
-    """Connect to MySQL db."""
-    db_username = environ.get("PERSONAL_DATA_DB_USERNAME", "root")
-    db_password = environ.get("PERSONAL_DATA_DB_PASSWORD", "")
+def get_db() -> connection.MySQLConnection:
+    """
+    Connect to mysql server with environmental vars
+    """
+    username = environ.get("PERSONAL_DATA_DB_USERNAME", "root")
+    password = environ.get("PERSONAL_DATA_DB_PASSWORD", "")
     db_host = environ.get("PERSONAL_DATA_DB_HOST", "localhost")
     db_name = environ.get("PERSONAL_DATA_DB_NAME")
-
-    connection = MySQLConnection(user=db_username, password=db_password,
-                                 host=db_host, database=db_name)
-
-    return connection
-
-
-def main() -> None:
-    """logs all users."""
-    connection = get_db()
-    cursor = connection.cursor()
-    cursor.execute('SELECT * FROM users')
-    rows = cursor.fetchall()
-    logger = get_logger()
-    for row in rows:
-        msg = f'name={row[0]}; email={row[1]}; phone={row[2]}; ssn={row[2]}; '\
-              f'password={row[3]}; ip={row[4]}; last_login={row[5]}; '\
-              f'user_agent={row[6]};'
-        logger.info(msg)
-    connection.close()
-    cursor.close()
+    connector = connection.MySQLConnection(
+        user=username,
+        password=password,
+        host=db_host,
+        database=db_name)
+    return connector
 
 
 class RedactingFormatter(logging.Formatter):
-    """ Redacting Formatter class
-        """
+    """ Redacting Formatter class """
 
     REDACTION = "***"
     FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
     SEPARATOR = ";"
 
     def __init__(self, fields: List[str]):
-        """Init method."""
+        """ inits class instance """
         super(RedactingFormatter, self).__init__(self.FORMAT)
         self.fields = fields
 
     def format(self, record: logging.LogRecord) -> str:
-        """Filter values in incoming log records."""
-        return filter_datum(self.fields, self.REDACTION,
-                            super().format(record), self.SEPARATOR)
+        """ filters values in incoming log records """
+        return filter_datum(
+            self.fields, self.REDACTION, super(
+                RedactingFormatter, self).format(record),
+            self.SEPARATOR)
 
 
-if __name__ == '__main__':
+def main() -> None:
+    """
+    Obtain a database connection using get_db
+    and retrieve all rows in the users table and display each row
+    """
+    db = get_db()
+    cur = db.cursor()
+
+    query = ('SELECT * FROM users;')
+    cur.execute(query)
+    fetch_data = cur.fetchall()
+
+    logger = get_logger()
+
+    for row in fetch_data:
+        fields = 'name={}; email={}; phone={}; ssn={}; password={}; ip={}; '\
+            'last_login={}; user_agent={};'
+        fields = fields.format(row[0], row[1], row[2], row[3],
+                               row[4], row[5], row[6], row[7])
+        logger.info(fields)
+
+    cur.close()
+    db.close()
+
+
+if __name__ == "__main__":
     main()
