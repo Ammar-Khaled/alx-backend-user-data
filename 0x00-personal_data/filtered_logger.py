@@ -12,10 +12,11 @@ PII_FIELDS = ('name', 'email', 'phone', 'ssn', 'password')
 def filter_datum(fields: List[str], redaction: str, message: str,
                  separator: str) -> str:
     """Return the log message obfuscated."""
+    temp = message
     for field in fields:
-        message = sub(field + "=.*?" + separator,
-                      field + "=" + redaction + separator, message)
-    return message
+        temp = sub(field + "=.*?" + separator,
+                   field + "=" + redaction + separator, temp)
+    return temp
 
 
 def get_logger() -> logging.Logger:
@@ -58,6 +59,8 @@ def main() -> None:
               f'password={row[3]}; ip={row[4]}; last_login={row[5]}; '\
               f'user_agent={row[6]};'
         logger.info(msg)
+    connection.close()
+    cursor.close()
 
 
 class RedactingFormatter(logging.Formatter):
