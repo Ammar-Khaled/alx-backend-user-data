@@ -4,7 +4,7 @@
 from typing import List
 import logging
 import re
-from mysql.connector import connection
+import mysql.connector
 from os import environ
 
 PII_FIELDS = ('name', 'email', 'password', 'ssn', 'phone')
@@ -32,7 +32,7 @@ def get_logger() -> logging.Logger:
     return logger
 
 
-def get_db() -> connection.MySQLConnection:
+def get_db() -> mysql.connector.connection.MySQLConnection:
     """
     Connect to mysql server with environmental vars
     """
@@ -40,12 +40,12 @@ def get_db() -> connection.MySQLConnection:
     password = environ.get("PERSONAL_DATA_DB_PASSWORD", "")
     db_host = environ.get("PERSONAL_DATA_DB_HOST", "localhost")
     db_name = environ.get("PERSONAL_DATA_DB_NAME")
-    connector = connection.MySQLConnection(
+    connection = mysql.connector.connection.MySQLConnection(
         user=username,
         password=password,
         host=db_host,
         database=db_name)
-    return connector
+    return connection
 
 
 class RedactingFormatter(logging.Formatter):
