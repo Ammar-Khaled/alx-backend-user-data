@@ -40,6 +40,7 @@ def forbidden_handler(error) -> str:
     """
     return jsonify({"error": "Forbidden"}), 403
 
+
 @app.before_request
 def authenticate_user():
     """Authenticates a user before processing a request.
@@ -47,7 +48,9 @@ def authenticate_user():
     if not auth:
         return
 
-    excluded_paths = ['/api/v1/status/', '/api/v1/unauthorized/', '/api/v1/forbidden/']
+    excluded_paths = ['/api/v1/status/',
+                      '/api/v1/unauthorized/',
+                      '/api/v1/forbidden/']
 
     if auth.require_auth(request.path, excluded_paths):
         if not auth.authorization_header(request):
@@ -55,6 +58,7 @@ def authenticate_user():
 
         if not auth.current_user(request):
             abort(403)
+
 
 if __name__ == "__main__":
     host = getenv("API_HOST", "0.0.0.0")
