@@ -23,6 +23,9 @@ class Auth:
             if ex_path.endswith('*'):
                 if path[:len(ex_path) - 1] == ex_path[:-1]:
                     return False
+            else:
+                if path == ex_path:
+                    return False
 
         return True
 
