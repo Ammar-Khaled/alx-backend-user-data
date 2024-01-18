@@ -2,6 +2,7 @@
 """ Module of session authentication views
 """
 from os import getenv
+from typing import Tuple
 from api.v1.views import app_views
 from flask import abort, jsonify, request
 
@@ -9,7 +10,7 @@ from models.user import User
 
 
 @app_views.route('/auth_session/login', methods=['POST'], strict_slashes=False)
-def view_login():
+def view_login() -> Tuple[str, int]:
     """ POST /api/v1/auth_session/login
     Return:
       - JSON representation of a User object.
@@ -42,3 +43,17 @@ def view_login():
     session_name = getenv('SESSION_NAME')
     response.set_cookie(session_name, session_id)
     return response
+
+
+@app_views.route('/auth_session/logout', methods=['DELETE'], strict_slashes=False)
+def view_logout() -> Tuple[str, int]:
+    """ DELETE /api/v1/auth_session/logout
+    Return:
+      - an empty JSON dictionary with the status code 200
+    """
+    from api.v1.app import auth
+    is_deleted = auth.destroy_session(request)
+    if not is_deleted:
+        abort(404)
+
+    return jsonify({}), 200
