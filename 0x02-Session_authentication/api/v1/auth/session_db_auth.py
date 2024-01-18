@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SessionDBAuth Module."""
+from flask import request
 from datetime import datetime, timedelta
-from os import getenv
 from api.v1.auth.session_exp_auth import SessionExpAuth
 from models.user_session import UserSession
 
@@ -12,7 +12,7 @@ class SessionDBAuth(SessionExpAuth):
         """Create and store a new instance of UserSession and
         return the Session ID."""
         session_id = super().create_session(user_id)
-        if session_id:
+        if session_id and type(session_id) == str:
             user_session = UserSession({
                 'user_id': user_id,
                 'session_id': session_id
