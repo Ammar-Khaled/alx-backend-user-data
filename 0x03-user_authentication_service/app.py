@@ -4,7 +4,6 @@
 from flask import Flask, jsonify, request, abort, redirect, url_for
 from auth import Auth
 from typing import Union
-from auth import Auth
 
 app = Flask(__name__)
 AUTH = Auth()
@@ -21,9 +20,9 @@ def home() -> str:
 def register_user() -> Union[str, tuple]:
     """ Register user
     """
+    email = request.form.get('email')
+    password = request.form.get('password')
     try:
-        email = request.form.get('email')
-        password = request.form.get('password')
         AUTH.register_user(email, password)
         return jsonify({"email": email, "message": "user created"})
     except ValueError:
@@ -39,11 +38,10 @@ def login() -> str:
     password = request.form.get('password')
     if not AUTH.valid_login(email, password):
         abort(401)
-
     session_id = AUTH.create_session(email)
-    response = jsonify({"email": email, "message": "logged in"})
-    response.set_cookie('session_id', session_id)
-    return response
+    res = jsonify({"email": email, "message": "logged in"})
+    res.set_cookie('session_id', session_id)
+    return res
 
 
 @app.route('/sessions', methods=['DELETE'], strict_slashes=False)
@@ -52,12 +50,13 @@ def logout():
     Logout user
     """
     session_id = request.cookies.get('session_id')
-    user = AUTH.get_user_from_session_id(session_id)
-    if user:
-        AUTH.destroy_session(user.id)
-        return redirect(url_for('home'))
-    else:
+    if not session_id:
         abort(403)
+    user = AUTH.get_user_from_session_id(session_id)
+    if not user:
+        abort(403)
+    AUTH.destroy_session(user.id)
+    return redirect(url_for('home'))
 
 
 @app.route('/profile', methods=['GET'], strict_slashes=False)
@@ -71,7 +70,6 @@ def profile() -> tuple:
     user = AUTH.get_user_from_session_id(session_id)
     if not user:
         abort(403)
-
     return jsonify({"email": user.email}), 200
 
 
@@ -82,7 +80,8 @@ def reset_password() -> tuple:
     email = request.form.get('email')
     try:
         token = AUTH.get_reset_password_token(email)
-        return jsonify({"email": email, "reset_token": token}), 200
+        return jsonify({"email": email,
+                        "reset_token": token}), 200
     except ValueError:
         abort(403)
 
@@ -91,15 +90,16 @@ def reset_password() -> tuple:
 def update_password() -> tuple:
     """ Update
     """
-    email = request.form.get("email")
-    reset_token = request.form.get("reset_token")
-    new_password = request.form.get("new_password")
+    email = request.form.get('email')
+    reset_token = request.form.get('reset_token')
+    new_password = request.form.get('new_password')
+
     try:
         AUTH.update_password(reset_token, new_password)
-        return jsonify({"email": email, "message": "Password updated"})
+        return jsonify({"email": email, "message": "Password updated"}), 200
     except ValueError:
         abort(403)
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port="5000")
+    app.run(host="0.0.0.0", port="5000")
